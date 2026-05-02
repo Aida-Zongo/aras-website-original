@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: aras-website
+    env: node
+    plan: free
+    buildCommand: pnpm install && npm run build # && npm run db:push (à faire manuellement ou automatiquement)
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        value: file:/data/sqlite.db
+      - key: JWT_SECRET
+        generateValue: true # Render générera une clé sécurisée automatiquement
+      - key: VITE_APP_ID
+        value: aras-website-app
+      - key: VITE_APP_TITLE
+        value: ARAS Website
+      - key: OAUTH_SERVER_URL
+        value: "https://votre-domaine.onrender.com" # À remplacer une fois l'URL Render connue
+      - key: OWNER_OPEN_ID
+        value: "admin-aras-2025" # Mettez l'ID de votre accès
+    disk:
+      name: aras-data
+      mountPath: /data
+      sizeGB: 1
