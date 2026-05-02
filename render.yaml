@@ -3,20 +3,20 @@ services:
     name: aras-website
     env: node
     plan: free
-    buildCommand: pnpm install && npm run build # && npm run db:push (à faire manuellement ou automatiquement)
+    buildCommand: npm install -g pnpm@10.4.1 && pnpm install && pnpm run build && pnpm run db:push && pnpm run db:seed
     startCommand: npm run start
     envVars:
-      - key: NODE_ENV
-        value: production
+      - key: NODE_VERSION
+        value: "20"
       - key: DATABASE_URL
         value: file:sqlite.db
       - key: JWT_SECRET
-        generateValue: true # Render générera une clé sécurisée automatiquement
+        generateValue: true
       - key: VITE_APP_ID
         value: aras-website-app
       - key: VITE_APP_TITLE
         value: ARAS Website
       - key: OAUTH_SERVER_URL
-        value: "https://aras-website.onrender.com" # À remplacer une fois l'URL Render connue
+        value: "https://aras-website.onrender.com"
       - key: OWNER_OPEN_ID
-        value: "admin-aras-2025" # Mettez l'ID de votre accès
+        value: "admin-aras-2025"
