@@ -3,7 +3,7 @@ services:
     name: aras-website
     env: node
     plan: free
-    buildCommand: npm install -g pnpm@10.4.1 && pnpm install --no-frozen-lockfile && pnpm rebuild better-sqlite3 && pnpm run build && pnpm run db:push && pnpm run db:seed
+    buildCommand: npm install -g pnpm@10.4.1 && pnpm config set node-linker hoisted && pnpm install --no-frozen-lockfile && pnpm rebuild better-sqlite3 && pnpm run build && pnpm run db:push && pnpm run db:seed
     startCommand: npm run start
     envVars:
       - key: NODE_VERSION
