@@ -1,13 +1,25 @@
 // @ts-nocheck
 import "dotenv/config";
-import { drizzle } from "drizzle-orm/better-sqlite3";
-import Database from "better-sqlite3";
+import { drizzle } from "drizzle-orm/mysql2";
+import mysql from "mysql2/promise";
 import { users } from "./drizzle/schema.js";
+import { eq } from "drizzle-orm";
 
 async function seedAdmin() {
   try {
-    const sqlite = new Database('sqlite.db');
-    const db = drizzle(sqlite);
+    const databaseUrl = process.env.DATABASE_URL;
+    if (!databaseUrl) {
+      throw new Error("DATABASE_URL is not defined");
+    }
+
+    const connection = await mysql.createConnection({
+      uri: databaseUrl,
+      ssl: {
+        minVersion: 'TLSv1.2',
+        rejectUnauthorized: true
+      }
+    });
+    const db = drizzle(connection);
 
     // Admin credentials
     const adminData = {
@@ -19,17 +31,13 @@ async function seedAdmin() {
     };
 
     // Check if admin already exists
-    // Check if admin already exists
     const existingAdmin = await db
       .select()
       .from(users)
-      .where((u) => u.openId === adminData.openId);
+      .where(eq(users.openId, adminData.openId));
 
     if (existingAdmin.length > 0) {
       console.log("✓ Admin account already exists");
-      console.log(`  OpenID: ${adminData.openId}`);
-      console.log(`  Email: ${adminData.email}`);
-      console.log(`  Name: ${adminData.name}`);
     } else {
       // Create admin user
       await db.insert(users).values({
@@ -42,17 +50,9 @@ async function seedAdmin() {
       });
 
       console.log("✓ Admin account created successfully!");
-      console.log(`\n📋 Admin Credentials:`);
-      console.log(`  OpenID: ${adminData.openId}`);
-      console.log(`  Email: ${adminData.email}`);
-      console.log(`  Name: ${adminData.name}`);
-      console.log(`  Role: Admin`);
-      console.log(`\n⚠️  Important: Use the Manus OAuth login system to access the admin panel.`);
-      console.log(`  Admin Panel URL: /admin`);
     }
 
-    // connection.end() not needed for better-sqlite3 as process exit handles it, or verify explicit close.
-    // sqlite.close();
+    await connection.end();
     process.exit(0);
   } catch (error) {
     console.error("Error seeding admin:", error);

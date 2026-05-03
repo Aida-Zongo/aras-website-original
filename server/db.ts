@@ -1,17 +1,30 @@
 import { eq, desc, and, SQLWrapper } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/better-sqlite3";
-import Database from "better-sqlite3";
+import { drizzle } from "drizzle-orm/mysql2";
+import mysql from "mysql2/promise";
 import { InsertUser, users, activities, articles, media, membershipSubmissions, contactSubmissions, reactions, comments } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
+let _connection: mysql.Connection | null = null;
 
 // Lazily create the drizzle instance
 export async function getDb() {
   if (!_db) {
     try {
-      const sqlite = new Database('sqlite.db');
-      _db = drizzle(sqlite);
+      if (!ENV.databaseUrl) {
+        throw new Error("DATABASE_URL is not defined in environment");
+      }
+      
+      const connection = await mysql.createConnection({
+        uri: ENV.databaseUrl,
+        ssl: {
+          minVersion: 'TLSv1.2',
+          rejectUnauthorized: true
+        }
+      });
+      _connection = connection;
+      _db = drizzle(connection);
+      console.log("[Database] Connected successfully to TiDB/MySQL");
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -32,23 +45,20 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   }
 
   try {
-    const values: InsertUser = {
+    const values: any = {
       openId: user.openId,
     };
-    const updateSet: Record<string, unknown> = {};
+    const updateSet: Record<string, any> = {};
 
     const textFields = ["name", "email", "loginMethod"] as const;
-    type TextField = (typeof textFields)[number];
-
-    const assignNullable = (field: TextField) => {
+    
+    textFields.forEach(field => {
       const value = user[field];
-      if (value === undefined) return;
-      const normalized = value ?? null;
-      values[field] = normalized;
-      updateSet[field] = normalized;
-    };
-
-    textFields.forEach(assignNullable);
+      if (value !== undefined) {
+        values[field] = value ?? null;
+        updateSet[field] = value ?? null;
+      }
+    });
 
     if (user.lastSignedIn !== undefined) {
       values.lastSignedIn = user.lastSignedIn;
@@ -70,8 +80,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       updateSet.lastSignedIn = new Date();
     }
 
-    await db.insert(users).values(values).onConflictDoUpdate({
-      target: users.openId,
+    await db.insert(users).values(values).onDuplicateKeyUpdate({
       set: updateSet,
     });
   } catch (error) {
@@ -143,7 +152,7 @@ export async function updateActivity(id: number, data: {
   const updateData: Record<string, any> = {};
   if (data.title) updateData.title = data.title;
   if (data.description) updateData.description = data.description;
-  if (data.category) updateData.category = data.category;
+  if (data.category) updateData.category = data.category as any;
   if (data.imageUrl) updateData.imageUrl = data.imageUrl;
 
   return await db.update(activities).set(updateData).where(eq(activities.id, id));
@@ -362,21 +371,14 @@ export async function toggleReaction(
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  // @ts-ignore - complex filter typing
-  const filters: SQLWrapper[] = [
+  // Filter building logic
+  let reactionQuery = db.select().from(reactions).where(and(
     eq(reactions.targetType, targetType),
     eq(reactions.targetId, targetId),
-  ];
+    userId ? eq(reactions.userId, userId) : eq(reactions.ipAddress, ipAddress!)
+  )).limit(1);
 
-  if (userId) {
-    filters.push(eq(reactions.userId, userId));
-  } else if (ipAddress) {
-    filters.push(eq(reactions.ipAddress, ipAddress));
-  } else {
-    throw new Error("Either userId or ipAddress is required");
-  }
-
-  const existing = await db.select().from(reactions).where(and(...filters)).limit(1);
+  const existing = await reactionQuery;
 
   if (existing.length > 0) {
     const reaction = existing[0];

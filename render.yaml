@@ -6,10 +6,10 @@ services:
     buildCommand: npm install -g pnpm@10.4.1 && pnpm config set node-linker hoisted && pnpm install --no-frozen-lockfile && pnpm run build && pnpm run db:push && pnpm run db:seed
     startCommand: npm run start
     envVars:
-      - key: NODE_VERSION
-        value: "20"
+      - key: NODE_ENV
+        value: production
       - key: DATABASE_URL
-        value: file:sqlite.db
+        value: "mysql://3jRdVFcRmWbDn2r.root:LHI9g4jbAJ8eb4MX@gateway01.eu-central-1.prod.aws.tidbcloud.com:4000/sys"
       - key: JWT_SECRET
         generateValue: true
       - key: VITE_APP_ID
@@ -17,6 +17,6 @@ services:
       - key: VITE_APP_TITLE
         value: ARAS Website
       - key: OAUTH_SERVER_URL
-        value: "https://aras-website.onrender.com"
+        value: "https://aras-website-58hq.onrender.com"
       - key: OWNER_OPEN_ID
         value: "admin-aras-2025"
