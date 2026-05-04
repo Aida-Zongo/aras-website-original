@@ -4,8 +4,8 @@ import mysql from "mysql2/promise";
 import { InsertUser, users, activities, articles, media, membershipSubmissions, contactSubmissions, reactions, comments } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
+let _pool: mysql.Pool | null = null;
 let _db: ReturnType<typeof drizzle> | null = null;
-let _connection: mysql.Connection | null = null;
 
 // Lazily create the drizzle instance
 export async function getDb() {
@@ -14,19 +14,25 @@ export async function getDb() {
       if (!ENV.databaseUrl) {
         throw new Error("DATABASE_URL is not defined in environment");
       }
+
+      console.log("[Database] Initializing connection pool to TiDB...");
       
-      const connection = await mysql.createConnection({
+      const pool = mysql.createPool({
         uri: ENV.databaseUrl,
         ssl: {
           minVersion: 'TLSv1.2',
           rejectUnauthorized: true
-        }
+        },
+        connectionLimit: 10,
+        enableKeepAlive: true,
+        keepAliveInitialDelay: 10000,
       });
-      _connection = connection;
-      _db = drizzle(connection);
-      console.log("[Database] Connected successfully to TiDB/MySQL");
+
+      _pool = pool;
+      _db = drizzle(pool);
+      console.log("[Database] ✅ SUCCESSFULLY connected to TiDB/MySQL Pool");
     } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
+      console.error("[Database] ❌ FAILED to connect to TiDB:", error);
       _db = null;
     }
   }
@@ -113,15 +119,13 @@ export async function createActivity(data: {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const result = await db.insert(activities).values({
+  return await db.insert(activities).values({
     title: data.title,
     description: data.description,
     category: data.category as any,
     imageUrl: data.imageUrl,
     createdBy: data.createdBy,
   });
-
-  return result;
 }
 
 export async function getActivities() {
@@ -371,14 +375,13 @@ export async function toggleReaction(
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  // Filter building logic
-  let reactionQuery = db.select().from(reactions).where(and(
+  let query = db.select().from(reactions).where(and(
     eq(reactions.targetType, targetType),
     eq(reactions.targetId, targetId),
     userId ? eq(reactions.userId, userId) : eq(reactions.ipAddress, ipAddress!)
   )).limit(1);
 
-  const existing = await reactionQuery;
+  const existing = await query;
 
   if (existing.length > 0) {
     const reaction = existing[0];

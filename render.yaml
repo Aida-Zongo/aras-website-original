@@ -3,13 +3,13 @@ services:
     name: aras-website
     env: node
     plan: free
-    buildCommand: npm install -g pnpm@10.4.1 && pnpm config set node-linker hoisted && pnpm install --no-frozen-lockfile && pnpm run build && pnpm run db:push && pnpm run db:seed
+    buildCommand: npm install -g pnpm@10.4.1 && pnpm config set node-linker hoisted && pnpm install --no-frozen-lockfile && pnpm run build && pnpm run db:push
     startCommand: npm run start
     envVars:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
-        value: "mysql://3jRdVFcRmWbDn2r.root:LHI9g4jbAJ8eb4MX@gateway01.eu-central-1.prod.aws.tidbcloud.com:4000/test?ssl=%7B%22rejectUnauthorized%22:true%7D"
+        value: "mysql://3jRdVFcRmWbDn2r.root:LHI9g4jbAJ8eb4MX@gateway01.eu-central-1.prod.aws.tidbcloud.com:4000/test"
       - key: JWT_SECRET
         generateValue: true
       - key: VITE_APP_ID
