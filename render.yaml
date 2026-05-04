@@ -20,3 +20,5 @@ services:
         value: "https://aras-website-58hq.onrender.com"
       - key: OWNER_OPEN_ID
         value: "admin-aras-2025"
+      - key: CLOUDINARY_URL
+        value: "cloudinary://265686958798149:VH8g6MA1-8E2rwVPO8y3S6qYMO0@dyqvxreo3"
