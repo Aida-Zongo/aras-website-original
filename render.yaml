@@ -9,7 +9,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
-        value: "mysql://3jRdVFcRmWbDn2r.root:LHI9g4jbAJ8eb4MX@gateway01.eu-central-1.prod.aws.tidbcloud.com:4000/sys?ssl=%7B%22rejectUnauthorized%22:true%7D"
+        value: "mysql://3jRdVFcRmWbDn2r.root:LHI9g4jbAJ8eb4MX@gateway01.eu-central-1.prod.aws.tidbcloud.com:4000/test?ssl=%7B%22rejectUnauthorized%22:true%7D"
       - key: JWT_SECRET
         generateValue: true
       - key: VITE_APP_ID
